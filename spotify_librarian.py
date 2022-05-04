@@ -110,7 +110,9 @@ class PlaylistConfig():
                 for genre in self.genres:
                     if genre in artist_genre:
                         return True
-        return False
+            return False
+        
+        return True
 
     def add_track(self, track: dict) -> bool:
         if self.check_track(track):
