@@ -1,6 +1,8 @@
+from spotipy import Spotify
+
 class PlaylistConfig():
     def __init__(self, 
-        spotipy_client: object,
+        spotipy_client: Spotify,
         name: str, 
         min_tempo: int=None, 
         max_tempo: int=None, 
@@ -51,11 +53,10 @@ class PlaylistConfig():
 
 
     def check_track(self, track: dict) -> bool:
-        track_id = track["id"]
+        audio_features = track["audio_features"]  
         artist_id = track["artists"][0]["id"]
         artist = self.sp.artist(artist_id)
         artist_genres = artist["genres"]
-        audio_features = self.sp.audio_features(track_id)[0]
         
         if self.min_tempo:
             if audio_features["tempo"] < self.min_tempo:
@@ -101,15 +102,23 @@ class PlaylistConfig():
         
         return True
 
-    def add_track(self, track: dict) -> bool:
-        if self.check_track(track):
-            self.tracks_to_add.append(track["id"])
-            if len(self.tracks_to_add) == 100:
-                self.sp.playlist_add_items(self.playlist_id, self.tracks_to_add)
-                self.tracks_to_add = []
-            return True
-        else:
+    def check_and_add_track(self, track: dict) -> bool:
+        try:
+            if self.check_track(track):
+                self.tracks_to_add.append(track["id"])
+                if len(self.tracks_to_add) == 100:
+                    print(f"Adding 100 tracks to {self.name}")
+                    self.sp.playlist_add_items(self.playlist_id, self.tracks_to_add)
+                    self.tracks_to_add = []
+                return True
+            else:
+                return False
+        except Exception as e:
+            print(e)
+            print("Track:")
+            print(track)
             return False
     
     def finish(self):
+        print(f"Adding {len(self.tracks_to_add)} tracks to {self.name}")
         self.sp.playlist_add_items(self.playlist_id, self.tracks_to_add)

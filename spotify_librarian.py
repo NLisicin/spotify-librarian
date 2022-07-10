@@ -16,40 +16,49 @@ sp = Spotify(auth_manager=SpotifyOAuth(client_id=CLIENT_ID, client_secret=CLIENT
 
 # Set playlist configurations.
 PLAYLIST_CONFIGS = [
-    PlaylistConfig(sp, "Low Energy Pop", max_energy=0.5, genres=["pop", "funk", "synth", "indie", "disco", "r&b", "electronica", "soul", "girl group", "game", "multidisciplinary", "twitch"]),
-    PlaylistConfig(sp, "High Energy Pop", min_energy=0.5, genres=["pop", "funk", "synth", "indie", "disco", "r&b", "electronica", "soul", "girl group", "game", "multidisciplinary", "twitch"]),
+    PlaylistConfig(sp, "Low Energy Pop", max_energy=0.6, genres=["pop", "funk", "synth", "indie", "disco", "r&b", "electronica", "soul", "girl group", "game", "multidisciplinary", "twitch"]),
+    PlaylistConfig(sp, "High Energy Pop", min_energy=0.6, genres=["pop", "funk", "synth", "indie", "disco", "r&b", "electronica", "soul", "girl group", "game", "multidisciplinary", "twitch"]),
     PlaylistConfig(sp, "Rock & Metal", genres=["rock", "metal", "slayer"]),
     PlaylistConfig(sp, "Acoustic", min_acousticness=0.8),
-    PlaylistConfig(sp, "Dance", min_danceability=0.8),
+    PlaylistConfig(sp, "Dance", min_danceability=0.7),
     PlaylistConfig(sp, "Instrumental", min_instrumentalness=0.8),
-    PlaylistConfig(sp, "Low Energy", max_energy=0.5),
-    PlaylistConfig(sp, "High Energy", min_energy=0.5),
+    PlaylistConfig(sp, "Low Energy", max_energy=0.6),
+    PlaylistConfig(sp, "High Energy", min_energy=0.6),
 ]
 
 # Process tracks incrementally.
 user_tracks = sp.current_user_saved_tracks()
-i = 1
+processed_count = 0
+tracks_to_check = []
 tracks_not_added = []
 print("")
 while user_tracks:
     for item in user_tracks["items"]:
-        track = item["track"]
-        print(f"Processing track {i}...", end="\r")
-        i += 1
-        added_to_at_least_one = False
-        for config in PLAYLIST_CONFIGS:
-            was_added = config.add_track(track)
-            if was_added:
-                added_to_at_least_one = True
-        if not added_to_at_least_one:
-            tracks_not_added.append(track)
+        processed_count += 1
+        print(f"Processing track {processed_count}...", end="\r")
+        tracks_to_check.append(item["track"])
+        if len(tracks_to_check) == 100:
+            audio_features = sp.audio_features([track["id"] for track in tracks_to_check])
+            for i in range(len(tracks_to_check)):
+                track = tracks_to_check[i]
+                track["audio_features"] = audio_features[i]
+                added_to_at_least_one = False
+                for config in PLAYLIST_CONFIGS:
+                    was_added = config.check_and_add_track(track)
+                    if was_added:
+                        added_to_at_least_one = True
+                if not added_to_at_least_one:
+                    print("Not added to any playlists:")
+                    print(track)
+                    tracks_not_added.append(track)
+            tracks_to_check = []
     if user_tracks["next"]:
         user_tracks = sp.next(user_tracks)
     else:
         user_tracks = None
 for config in PLAYLIST_CONFIGS:
     config.finish()
-print(f"Processing track {i}...\n\nDone 🎉")
+print(f"\n\nDone 🎉\n\nProcessed {processed_count} tracks.")
 
 # Show tracks that were not added to any playlist.
 print("\nNot added:\n")
