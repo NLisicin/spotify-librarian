@@ -1,8 +1,9 @@
-from dotenv import load_dotenv
+from json import dump, load, JSONDecodeError
 from os import getenv
-from playlist_config import PlaylistConfig
+from dotenv import load_dotenv
 from spotipy import Spotify
 from spotipy.oauth2 import SpotifyOAuth
+from playlist_config import PlaylistConfig
 
 # Load environment variables.
 load_dotenv()
@@ -16,32 +17,58 @@ sp = Spotify(auth_manager=SpotifyOAuth(client_id=CLIENT_ID, client_secret=CLIENT
 
 # Set playlist configurations.
 PLAYLIST_CONFIGS = [
-    PlaylistConfig(sp, "Low Energy Pop", max_energy=0.6, genres=["pop", "funk", "synth", "indie", "disco", "r&b", "electronica", "soul", "girl group", "game", "multidisciplinary", "twitch"]),
-    PlaylistConfig(sp, "High Energy Pop", min_energy=0.6, genres=["pop", "funk", "synth", "indie", "disco", "r&b", "electronica", "soul", "girl group", "game", "multidisciplinary", "twitch"]),
+    PlaylistConfig(sp, "Low Energy Pop", max_energy=0.65, genres=["pop", "funk", "synth", "indie", "disco", "r&b", "electronica", "soul", "girl group", "game", "multidisciplinary", "twitch"]),
+    PlaylistConfig(sp, "High Energy Pop", min_energy=0.65, genres=["pop", "funk", "synth", "indie", "disco", "r&b", "electronica", "soul", "girl group", "game", "multidisciplinary", "twitch"]),
     PlaylistConfig(sp, "Rock & Metal", genres=["rock", "metal", "slayer"]),
     PlaylistConfig(sp, "Acoustic", min_acousticness=0.8),
     PlaylistConfig(sp, "Dance", min_danceability=0.7),
     PlaylistConfig(sp, "Instrumental", min_instrumentalness=0.8),
-    PlaylistConfig(sp, "Low Energy", max_energy=0.6),
-    PlaylistConfig(sp, "High Energy", min_energy=0.6),
+    PlaylistConfig(sp, "Low Energy", max_energy=0.65),
+    PlaylistConfig(sp, "High Energy", min_energy=0.65),
 ]
+
+# Load saved audio features.
+print("\nLoading audio features...")
+try:
+    with open("audio_features.json", "r") as features_file:
+        saved_features = load(features_file)
+except JSONDecodeError:
+    saved_features = {}
 
 # Process tracks incrementally.
 user_tracks = sp.current_user_saved_tracks()
 processed_count = 0
-tracks_to_check = []
+tracks_without_audio_features = []
+tracks_with_audio_features = []
 tracks_not_added = []
 print("")
-while user_tracks:
-    for item in user_tracks["items"]:
-        processed_count += 1
-        print(f"Processing track {processed_count}...", end="\r")
-        tracks_to_check.append(item["track"])
-        if len(tracks_to_check) == 100:
-            audio_features = sp.audio_features([track["id"] for track in tracks_to_check])
-            for i in range(len(tracks_to_check)):
-                track = tracks_to_check[i]
-                track["audio_features"] = audio_features[i]
+with open("audio_features.json", "w") as features_file:
+    while user_tracks:
+        for item in user_tracks["items"]:
+            processed_count += 1
+            print(f"Processing track {processed_count}...", end="\r")
+
+            # Check if track needs audio features downloaded.
+            track = item["track"]
+            try:
+                track["audio_features"] = saved_features[track["id"]]
+                tracks_with_audio_features.append(track)
+            except KeyError:
+                tracks_without_audio_features.append(track)
+
+            # Download new audio features every 100 tracks.
+            if len(tracks_without_audio_features) == 100:
+                new_audio_features = sp.audio_features([track["id"] for track in tracks_without_audio_features])
+                for i in range(len(tracks_without_audio_features)):
+                    new_track = tracks_without_audio_features[i]
+                    new_track["audio_features"] = new_audio_features[i]
+                    tracks_with_audio_features.append(new_track)
+                    saved_features[new_track["id"]] = new_track["audio_features"]
+                dump(saved_features, features_file)
+                tracks_without_audio_features = []
+
+            # Add tracks to playlists.
+            for track in tracks_with_audio_features:
                 added_to_at_least_one = False
                 for config in PLAYLIST_CONFIGS:
                     was_added = config.check_and_add_track(track)
@@ -51,13 +78,16 @@ while user_tracks:
                     print("Not added to any playlists:")
                     print(track)
                     tracks_not_added.append(track)
-            tracks_to_check = []
-    if user_tracks["next"]:
-        user_tracks = sp.next(user_tracks)
-    else:
-        user_tracks = None
+                tracks_with_audio_features = []
+
+        if user_tracks["next"]:
+            user_tracks = sp.next(user_tracks)
+        else:
+            user_tracks = None
+
 for config in PLAYLIST_CONFIGS:
     config.finish()
+
 print(f"\n\nDone 🎉\n\nProcessed {processed_count} tracks.")
 
 # Show tracks that were not added to any playlist.
