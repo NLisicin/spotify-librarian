@@ -14,6 +14,7 @@ SCOPE= "playlist-modify-public playlist-modify-private user-library-read"
 
 # Connect to Spotify.
 sp = Spotify(auth_manager=SpotifyOAuth(client_id=CLIENT_ID, client_secret=CLIENT_SECRET, redirect_uri=REDIRECT, scope=SCOPE))
+user_tracks = sp.current_user_saved_tracks()
 
 # Set playlist configurations.
 POP_GENRES = ["pop", "funk", "synthpop", "indie", "disco", "r&b", "electronica", "soul", "girl group", "game", "multidisciplinary", "twitch"]
@@ -32,68 +33,89 @@ PLAYLIST_CONFIGS = [
     PlaylistConfig(sp, "Low Energy", max_energy=0.65),
 ]
 
-# Load saved audio features.
-print("\nLoading audio features...")
+# Load saved data.
+print("\nLoading data...\n")
 try:
     with open("audio_features.json", "r") as features_file:
         saved_features = load(features_file)
-except JSONDecodeError:
+except (FileNotFoundError, JSONDecodeError):
     saved_features = {}
+try:
+    with open("artists.json", "r") as artists_file:
+        saved_artists = load(artists_file)
+except (FileNotFoundError, JSONDecodeError):
+    saved_artists = {}
 
 # Process tracks incrementally.
-user_tracks = sp.current_user_saved_tracks()
 processed_count = 0
 tracks_without_audio_features = []
 tracks_with_audio_features = []
 tracks_not_added = []
-print("")
-with open("audio_features.json", "w") as features_file:
-    while user_tracks:
-        for item in user_tracks["items"]:
-            processed_count += 1
-            print(f"Processing track {processed_count}...", end="\r")
 
-            # Check if track needs audio features downloaded.
-            track = item["track"]
-            try:
-                track["audio_features"] = saved_features[track["id"]]
-                tracks_with_audio_features.append(track)
-            except KeyError:
-                tracks_without_audio_features.append(track)
+while user_tracks:
+    for item in user_tracks["items"]:
+        processed_count += 1
+        print(f"Processing track {processed_count}...", end="\r")
 
-            # Download new audio features every 100 tracks.
-            if len(tracks_without_audio_features) == 100:
-                new_audio_features = sp.audio_features([track["id"] for track in tracks_without_audio_features])
-                for i in range(len(tracks_without_audio_features)):
-                    new_track = tracks_without_audio_features[i]
-                    new_track["audio_features"] = new_audio_features[i]
-                    tracks_with_audio_features.append(new_track)
-                    saved_features[new_track["id"]] = new_track["audio_features"]
+        track = item["track"]
+
+        # Check if track needs audio features downloaded.
+        try:
+            track["audio_features"] = saved_features[track["id"]]
+            tracks_with_audio_features.append(track)
+        except KeyError:
+            tracks_without_audio_features.append(track)
+        except Exception as e:
+            print(e)
+        
+        # Check if track needs artist downloaded.
+        artist_id = track["artists"][0]["id"]
+        try:
+            track["artist"] = saved_artists[artist_id]
+        except KeyError as e:
+            artist = sp.artist(artist_id)
+            track["artist"] = artist
+            saved_artists[artist_id] = artist
+            with open("artists.json", "w") as artists_file:
+                dump(saved_artists, artists_file)
+        except Exception as e:
+            print(e)
+
+        # Download new audio features every 100 tracks.
+        if len(tracks_without_audio_features) == 100:
+            new_audio_features = sp.audio_features([track["id"] for track in tracks_without_audio_features])
+            for i in range(len(tracks_without_audio_features)):
+                new_track = tracks_without_audio_features[i]
+                new_track["audio_features"] = new_audio_features[i]
+                tracks_with_audio_features.append(new_track)
+                saved_features[new_track["id"]] = new_track["audio_features"]
+            with open("audio_features.json", "w") as features_file:
                 dump(saved_features, features_file)
-                tracks_without_audio_features = []
+            tracks_without_audio_features = []
 
-            # Add tracks to playlists.
-            for track in tracks_with_audio_features:
-                added_to_at_least_one = False
-                for config in PLAYLIST_CONFIGS:
+        # Add tracks to playlists.
+        for track in tracks_with_audio_features:
+            added_to_at_least_one = False
+            for config in PLAYLIST_CONFIGS:
+                try:
                     was_added = config.check_and_add_track(track)
                     if was_added:
                         added_to_at_least_one = True
-                if not added_to_at_least_one:
-                    print("Not added to any playlists:")
-                    print(track)
-                    tracks_not_added.append(track)
-                tracks_with_audio_features = []
+                except Exception as e:
+                    print(e)
+            if not added_to_at_least_one:
+                tracks_not_added.append(track)
+            tracks_with_audio_features = []
 
-        if user_tracks["next"]:
-            user_tracks = sp.next(user_tracks)
-        else:
-            user_tracks = None
+    if user_tracks["next"]:
+        user_tracks = sp.next(user_tracks)
+    else:
+        user_tracks = None
 
 for config in PLAYLIST_CONFIGS:
     config.finish()
 
-print(f"\n\nDone 🎉\n\nProcessed {processed_count} tracks.")
+print(f"\nDone 🎉\n\nProcessed {processed_count} tracks.")
 
 # Show tracks that were not added to any playlist.
 print("\nNot added:\n")
