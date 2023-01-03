@@ -16,15 +16,20 @@ SCOPE= "playlist-modify-public playlist-modify-private user-library-read"
 sp = Spotify(auth_manager=SpotifyOAuth(client_id=CLIENT_ID, client_secret=CLIENT_SECRET, redirect_uri=REDIRECT, scope=SCOPE))
 
 # Set playlist configurations.
+POP_GENRES = ["pop", "funk", "synthpop", "indie", "disco", "r&b", "electronica", "soul", "girl group", "game", "multidisciplinary", "twitch"]
+NOT_POP_GENRES = ["funk metal", "bow pop"]
+ROCK_GENRES = ["rock", "metal", "slayer", "hurdy-gurdy"]
+
 PLAYLIST_CONFIGS = [
-    PlaylistConfig(sp, "Low Energy Pop", max_energy=0.65, genres=["pop", "funk", "synth", "indie", "disco", "r&b", "electronica", "soul", "girl group", "game", "multidisciplinary", "twitch"]),
-    PlaylistConfig(sp, "High Energy Pop", min_energy=0.65, genres=["pop", "funk", "synth", "indie", "disco", "r&b", "electronica", "soul", "girl group", "game", "multidisciplinary", "twitch"]),
-    PlaylistConfig(sp, "Rock & Metal", genres=["rock", "metal", "slayer"]),
-    PlaylistConfig(sp, "Acoustic", min_acousticness=0.8),
-    PlaylistConfig(sp, "Dance", min_danceability=0.7),
-    PlaylistConfig(sp, "Instrumental", min_instrumentalness=0.8),
-    PlaylistConfig(sp, "Low Energy", max_energy=0.65),
+    PlaylistConfig(sp, "Instrumental", min_instrumentalness=0.6),
+    PlaylistConfig(sp, "Sleep", max_energy=0.4),
+    PlaylistConfig(sp, "Dance", min_danceability=0.65, min_energy=0.65, genres=POP_GENRES, not_genres=NOT_POP_GENRES),
+    PlaylistConfig(sp, "Morning", min_acousticness=0.65, max_energy=0.65),
+    PlaylistConfig(sp, "Rock & Metal", genres=ROCK_GENRES),
+    PlaylistConfig(sp, "High Energy Pop", min_energy=0.65, genres=POP_GENRES, not_genres=NOT_POP_GENRES),
+    PlaylistConfig(sp, "Low Energy Pop", max_energy=0.65, genres=POP_GENRES, not_genres=NOT_POP_GENRES),
     PlaylistConfig(sp, "High Energy", min_energy=0.65),
+    PlaylistConfig(sp, "Low Energy", max_energy=0.65),
 ]
 
 # Load saved audio features.
