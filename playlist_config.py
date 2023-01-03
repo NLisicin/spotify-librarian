@@ -1,19 +1,19 @@
 from spotipy import Spotify
 
 class PlaylistConfig():
-    def __init__(self, 
+    def __init__(self,
         spotipy_client: Spotify,
-        name: str, 
-        min_tempo: int=None, 
-        max_tempo: int=None, 
-        min_acousticness: float=None, 
-        max_acousticness: float=None, 
-        min_danceability: float=None, 
-        max_danceability: float=None, 
-        min_energy: float=None, 
-        max_energy: float=None, 
-        min_instrumentalness: float=None, 
-        max_instrumentalness: float=None, 
+        name: str,
+        min_tempo: int=None,
+        max_tempo: int=None,
+        min_acousticness: float=None,
+        max_acousticness: float=None,
+        min_danceability: float=None,
+        max_danceability: float=None,
+        min_energy: float=None,
+        max_energy: float=None,
+        min_instrumentalness: float=None,
+        max_instrumentalness: float=None,
         min_loudness: float=None,
         max_loudness: float=None,
         min_valence: float=None,
@@ -81,61 +81,50 @@ class PlaylistConfig():
 
 
     def check_track(self, track: dict) -> bool:
-        audio_features = track["audio_features"]  
-        artist_id = track["artists"][0]["id"]
-        artist = self.sp.artist(artist_id)
-        artist_genres = artist["genres"]
+        audio_features = track["audio_features"]
         
-        if self.min_tempo:
-            if audio_features["tempo"] < self.min_tempo:
-                return False
-        if self.max_tempo:
-            if audio_features["tempo"] > self.max_tempo:
-                return False  
+        # Check feature config.
+        try:
+            for feature_name, value in audio_features.items():
+                try:
+                    if value < self.config["features"][feature_name]["min"]:
+                        return False
+                except Exception:
+                    pass
+                try:
+                    if value > self.config["features"][feature_name]["max"]:
+                        return False
+                except Exception:
+                    pass
+        except Exception as e:
+            print(e)
+            print(track)
+            pass
+        
 
-        if self.min_acousticness:
-            if audio_features["acousticness"] < self.min_acousticness:
-                return False  
-        if self.max_acousticness:
-            if audio_features["acousticness"] > self.max_acousticness:
-                return False
+        # Check genre config.
+        if len(self.config["genres"]) == 0 and len(self.config["not_genres"]) == 0:
+            return True
 
-        if self.min_danceability:
-            if audio_features["danceability"] < self.min_danceability:
-                return False  
-        if self.max_danceability:
-            if audio_features["danceability"] > self.max_danceability:
-                return False
-
-        if self.min_energy:
-            if audio_features["energy"] < self.min_energy:
-                return False  
-        if self.max_energy:
-            if audio_features["energy"] > self.max_energy:
-                return False
-
-        if self.min_instrumentalness:
-            if audio_features["instrumentalness"] < self.min_instrumentalness:
-                return False  
-        if self.max_instrumentalness:
-            if audio_features["instrumentalness"] > self.max_instrumentalness:
-                return False  
-
-        if self.genres:
-            for artist_genre in artist_genres:
-                for genre in self.genres:
+        try:
+            for artist_genre in track["artist"]["genres"]:
+                for not_genre in self.config["not_genres"]:
+                    if not_genre in artist_genre:
+                        return False
+                for genre in self.config["genres"]:
                     if genre in artist_genre:
                         return True
-            return False
+        except Exception as e:
+            print(e)
+            pass
         
-        return True
+        return False
 
     def check_and_add_track(self, track: dict) -> bool:
         try:
             if self.check_track(track):
                 self.tracks_to_add.append(track["id"])
                 if len(self.tracks_to_add) == 100:
-                    print(f"Adding 100 tracks to {self.name}")
                     self.sp.playlist_add_items(self.playlist_id, self.tracks_to_add)
                     self.tracks_to_add = []
                 return True
@@ -143,10 +132,7 @@ class PlaylistConfig():
                 return False
         except Exception as e:
             print(e)
-            print("Track:")
-            print(track)
-            return False
     
     def finish(self):
-        print(f"Adding {len(self.tracks_to_add)} tracks to {self.name}")
+        print(f"Finishing {self.name}")
         self.sp.playlist_add_items(self.playlist_id, self.tracks_to_add)
