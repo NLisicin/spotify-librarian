@@ -38,6 +38,26 @@ class PlaylistConfig():
                     "min": min_danceability,
                     "max": max_danceability
                 },
+                "energy": {
+                    "min": min_energy,
+                    "max": max_energy
+                },
+                "instrumentalness": {
+                    "min": min_instrumentalness,
+                    "max": max_instrumentalness
+                },
+                "loudness": {
+                    "min": min_loudness,
+                    "max": max_loudness
+                },
+                "valence": {
+                    "min": min_valence,
+                    "max": max_valence
+                }
+            },
+            "genres": genres,
+            "not_genres": not_genres
+        }
         self.playlist_id = self.create_playlist(self.name)
         self.tracks_to_add = []
     
