@@ -14,22 +14,30 @@ class PlaylistConfig():
         max_energy: float=None, 
         min_instrumentalness: float=None, 
         max_instrumentalness: float=None, 
-        genres: list=None
+        min_loudness: float=None,
+        max_loudness: float=None,
+        min_valence: float=None,
+        max_valence: float=None,
+        genres: list=[],
+        not_genres: list=[]
     ):
         self.sp = spotipy_client
         self.name = f"[SL] {name}"
         print(f"Initializing playlist {self.name}")
-        self.min_tempo = min_tempo
-        self.max_tempo = max_tempo
-        self.genres = genres
-        self.min_acousticness = min_acousticness
-        self.max_acousticness = max_acousticness
-        self.min_danceability = min_danceability
-        self.max_danceability = max_danceability
-        self.min_energy = min_energy
-        self.max_energy = max_energy
-        self.min_instrumentalness = min_instrumentalness
-        self.max_instrumentalness = max_instrumentalness
+        self.config = {
+            "features": {
+                "tempo": {
+                    "min": min_tempo,
+                    "max": max_tempo
+                },
+                "acousticness": {
+                    "min": min_acousticness,
+                    "max": max_acousticness
+                },
+                "danceability": {
+                    "min": min_danceability,
+                    "max": max_danceability
+                },
         self.playlist_id = self.create_playlist(self.name)
         self.tracks_to_add = []
     
