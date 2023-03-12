@@ -97,41 +97,29 @@ class PlaylistConfig():
         audio_features = track["audio_features"]
         
         # Check feature config.
-        try:
-            for feature_name, value in audio_features.items():
-                try:
-                    if value < self.config["features"][feature_name]["min"]:
+        for feature_name, thresholds in self.config["features"].items():
+            if feature_name in audio_features:
+                if thresholds["min"] is not None:
+                    if audio_features[feature_name] < thresholds["min"]:
                         return False
-                except Exception:
-                    pass
-                try:
-                    if value > self.config["features"][feature_name]["max"]:
+                if thresholds["max"] is not None:
+                    if audio_features[feature_name] > thresholds["max"]:
                         return False
-                except Exception:
-                    pass
-        except Exception as e:
-            print(e)
-            print(track)
-            pass
         
-
         # Check genre config.
-        if len(self.config["genres"]) == 0 and len(self.config["not_genres"]) == 0:
-            return True
-
-        try:
+        for not_genre in self.config["not_genres"]:
             for artist_genre in track["artist"]["genres"]:
-                for not_genre in self.config["not_genres"]:
-                    if not_genre in artist_genre:
-                        return False
-                for genre in self.config["genres"]:
+                if not_genre in artist_genre:
+                    return False
+        if self.config["genres"]:
+            for genre in self.config["genres"]:
+                for artist_genre in track["artist"]["genres"]:
                     if genre in artist_genre:
                         return True
-        except Exception as e:
-            print(e)
-            pass
+            return False
         
-        return False
+        return True
+
 
     def check_and_add_track(self, track: dict) -> bool:
         try:
