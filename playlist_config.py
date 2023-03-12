@@ -122,17 +122,15 @@ class PlaylistConfig():
 
 
     def check_and_add_track(self, track: dict) -> bool:
-        try:
-            if self.check_track(track):
-                self.tracks_to_add.append(track["id"])
-                if len(self.tracks_to_add) == 100:
-                    self.sp.playlist_add_items(self.playlist_id, self.tracks_to_add)
-                    self.tracks_to_add = []
-                return True
-            else:
-                return False
-        except Exception as e:
-            print(e)
+        if self.check_track(track):
+            self.tracks_to_add.append(track["id"])
+            if len(self.tracks_to_add) == 100:
+                self.sp.playlist_add_items(self.playlist_id, self.tracks_to_add)
+                self.tracks_to_add = []
+            return True
+        else:
+            return False
+    
     
     def finish(self):
         print(f"Finishing {self.name}")
