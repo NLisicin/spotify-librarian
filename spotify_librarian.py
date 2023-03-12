@@ -103,14 +103,11 @@ while user_tracks:
         for track in tracks_with_audio_features:
             added_to_at_least_one = False
             for config in PLAYLIST_CONFIGS:
-                try:
-                    was_added = config.check_and_add_track(track)
-                    if was_added:
-                        added_to_at_least_one = True
-                except Exception as e:
-                    print(e)
+                was_added = config.check_and_add_track(track)
+                if was_added:
+                    added_to_at_least_one = True
             if not added_to_at_least_one:
-                tracks_not_added.append(track)
+                tracks_not_added.append(track["name"])
             tracks_with_audio_features = []
 
     if user_tracks["next"]:
@@ -154,11 +151,6 @@ if new_tracks:
     print("\n".join(new_tracks))
 
 # Show tracks that were not added to any playlist.
-print("\nNot added:\n")
-for track in tracks_not_added:
-    track_id = track["id"]
-    artist_id = track["artists"][0]["id"]
-    artist = sp.artist(artist_id)
-    artist_genres = artist["genres"]
-    audio_features = sp.audio_features(track_id)[0]
-    print(f"{artist['name']} - {track['name']} ({artist_genres})")
+if tracks_not_added:
+    print("\nNot added:\n")
+    print("\n".join(tracks_not_added))
