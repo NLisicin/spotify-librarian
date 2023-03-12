@@ -54,6 +54,7 @@ processed_count = 0
 tracks_without_audio_features = []
 tracks_with_audio_features = []
 tracks_not_added = []
+new_tracks = []
 
 while user_tracks:
     for item in user_tracks["items"]:
@@ -89,9 +90,11 @@ while user_tracks:
             new_audio_features = sp.audio_features([track["id"] for track in tracks_without_audio_features])
             for i in range(len(tracks_without_audio_features)):
                 new_track = tracks_without_audio_features[i]
-                new_track["audio_features"] = new_audio_features[i]
+                new_track["audio_features"] = new_audio_features[i] if new_audio_features[i] else {}
+                new_track["audio_features"]["name"] = new_track["name"]
                 tracks_with_audio_features.append(new_track)
                 saved_features[new_track["id"]] = new_track["audio_features"]
+                new_tracks.append(new_track["name"])
             with open("audio_features.json", "w") as features_file:
                 dump(saved_features, features_file)
             tracks_without_audio_features = []
@@ -119,6 +122,11 @@ for config in PLAYLIST_CONFIGS:
     config.finish()
 
 print(f"\nDone 🎉\n\nProcessed {processed_count} tracks.")
+
+# Show newly added tracks.
+if new_tracks:
+    print("\nNew tracks:")
+    print("\n".join(new_tracks))
 
 # Show tracks that were not added to any playlist.
 print("\nNot added:\n")
