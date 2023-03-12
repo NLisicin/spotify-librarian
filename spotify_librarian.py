@@ -116,6 +116,31 @@ while user_tracks:
     if user_tracks["next"]:
         user_tracks = sp.next(user_tracks)
     else:
+        # Download new audio features for remaining tracks.
+        new_audio_features = sp.audio_features([track["id"] for track in tracks_without_audio_features])
+        for i in range(len(tracks_without_audio_features)):
+            new_track = tracks_without_audio_features[i]
+            new_track["audio_features"] = new_audio_features[i] if new_audio_features[i] else {}
+            new_track["audio_features"]["name"] = new_track["name"]
+            tracks_with_audio_features.append(new_track)
+            saved_features[new_track["id"]] = new_track["audio_features"]
+            new_tracks.append(new_track["name"])
+        with open("audio_features.json", "w") as features_file:
+            dump(saved_features, features_file)
+
+        # Add remaining tracks to playlists.
+        for track in tracks_with_audio_features:
+            added_to_at_least_one = False
+            for config in PLAYLIST_CONFIGS:
+                try:
+                    was_added = config.check_and_add_track(track)
+                    if was_added:
+                        added_to_at_least_one = True
+                except Exception as e:
+                    print(e)
+            if not added_to_at_least_one:
+                tracks_not_added.append(track["name"])
+
         user_tracks = None
 
 for config in PLAYLIST_CONFIGS:
