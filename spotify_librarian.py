@@ -21,16 +21,19 @@ POP_GENRES = ["pop", "funk", "synthpop", "indie", "disco", "r&b", "electronica",
 NOT_POP_GENRES = ["funk metal", "bow pop"]
 ROCK_GENRES = ["rock", "metal", "slayer", "hurdy-gurdy"]
 
+ENERGY_THRESHOLD = 0.7
+
 PLAYLIST_CONFIGS = [
-    PlaylistConfig(sp, "Instrumental", min_instrumentalness=0.6),
-    PlaylistConfig(sp, "Sleep", max_energy=0.4),
-    PlaylistConfig(sp, "Dance", min_danceability=0.65, min_energy=0.65, genres=POP_GENRES, not_genres=NOT_POP_GENRES),
-    PlaylistConfig(sp, "Morning", min_acousticness=0.65, max_energy=0.65),
-    PlaylistConfig(sp, "Rock & Metal", genres=ROCK_GENRES),
-    PlaylistConfig(sp, "High Energy Pop", min_energy=0.65, genres=POP_GENRES, not_genres=NOT_POP_GENRES),
-    PlaylistConfig(sp, "Low Energy Pop", max_energy=0.65, genres=POP_GENRES, not_genres=NOT_POP_GENRES),
-    PlaylistConfig(sp, "High Energy", min_energy=0.65),
-    PlaylistConfig(sp, "Low Energy", max_energy=0.65),
+    PlaylistConfig(sp, "Instrumental", min_instrumentalness=0.7),
+    PlaylistConfig(sp, "Sleep", max_energy=0.4, min_duration_ms=60000),
+    PlaylistConfig(sp, "Dance", min_danceability=0.65, min_energy=ENERGY_THRESHOLD, min_duration_ms=60000,  genres=POP_GENRES, not_genres=NOT_POP_GENRES),
+    PlaylistConfig(sp, "Morning", min_acousticness=0.3, max_energy=0.5,  min_duration_ms=60000, not_genres=["classic rock", "dutch metal"]),
+    PlaylistConfig(sp, "Rock & Metal", min_duration_ms=60000, genres=ROCK_GENRES),
+    PlaylistConfig(sp, "High Energy Pop", min_energy=ENERGY_THRESHOLD, min_duration_ms=60000, genres=POP_GENRES, not_genres=NOT_POP_GENRES),
+    PlaylistConfig(sp, "Low Energy Pop", max_energy=ENERGY_THRESHOLD, min_duration_ms=60000, genres=POP_GENRES, not_genres=NOT_POP_GENRES),
+    PlaylistConfig(sp, "Pop", genres=POP_GENRES, min_duration_ms=60000, not_genres=NOT_POP_GENRES),
+    PlaylistConfig(sp, "High Energy", min_duration_ms=60000, min_energy=ENERGY_THRESHOLD),
+    PlaylistConfig(sp, "Low Energy", min_duration_ms=60000, max_energy=ENERGY_THRESHOLD),
 ]
 
 # Load saved data.

@@ -1,7 +1,8 @@
 from spotipy import Spotify
 
 class PlaylistConfig():
-    def __init__(self,
+    def __init__(
+        self,
         spotipy_client: Spotify,
         name: str,
         min_tempo: int=None,
@@ -18,6 +19,10 @@ class PlaylistConfig():
         max_loudness: float=None,
         min_valence: float=None,
         max_valence: float=None,
+        min_mode: int=None,
+        max_mode: int=None,
+        min_duration_ms: int=None,
+        max_duration_ms: int=None,
         genres: list=[],
         not_genres: list=[]
     ):
@@ -53,7 +58,15 @@ class PlaylistConfig():
                 "valence": {
                     "min": min_valence,
                     "max": max_valence
-                }
+                },
+                "mode": {
+                    "min": min_mode,
+                    "max": max_mode
+                },
+                "duration_ms": {
+                    "min": min_duration_ms,
+                    "max": max_duration_ms
+                },
             },
             "genres": genres,
             "not_genres": not_genres
