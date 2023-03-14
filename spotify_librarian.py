@@ -134,10 +134,10 @@ print(f"\nDone 🎉\n\nProcessed {processed_count} tracks.")
 
 # Show newly added tracks.
 if new_tracks:
-    print("\nNew tracks:")
-    print("\n".join(new_tracks))
+    print("\nNew tracks:", end="\n\n  ")
+    print("\n  ".join(new_tracks))
 
 # Show tracks that were not added to any playlist.
 if tracks_not_added:
-    print("\nNot added:\n")
-    print("\n".join(tracks_not_added))
+    print("\nNew tracks:", end="\n\n  ")
+    print("\n  ".join(tracks_not_added))
